@@ -1,0 +1,27 @@
+# Xcode / Swift
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+.swiftpm/
+Package.resolved
+
+# XcodeGen generates this from project.yml — do not commit
+PeakSignal.xcodeproj/
+
+# Secrets — never commit real API keys
+Config/Secrets.xcconfig
+
+# macOS
+.DS_Store
+*.swp
+
+# Fastlane / CI
+fastlane/report.xml
+fastlane/screenshots/**/*.png
