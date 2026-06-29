@@ -1,0 +1,103 @@
+// Peak Signal database schema (spec §6.3).
+// The running demo uses a client-side store; this schema documents the
+// production PostgreSQL model. Run `npx prisma migrate dev` after installing
+// prisma + @prisma/client to activate.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String       @id @default(cuid())
+  email     String       @unique
+  provider  String?
+  createdAt DateTime     @default(now()) @map("created_at")
+  trips     WatchedTrip[]
+
+  @@map("users")
+}
+
+model WatchedTrip {
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  origin      String
+  destination String
+  departDate  DateTime       @map("depart_date")
+  returnDate  DateTime       @map("return_date")
+  targetPrice Float?         @map("target_price")
+  travellers  Int            @default(1)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  prices      PriceHistory[]
+  verdicts    Verdict[]
+  itineraries Itinerary[]
+  sharedLinks SharedLink[]
+
+  @@map("watched_trips")
+}
+
+model PriceHistory {
+  id        String      @id @default(cuid())
+  tripId    String      @map("trip_id")
+  trip      WatchedTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  category  String // flight | hotel | airbnb | experience
+  price     Float
+  currency  String      @default("USD")
+  checkedAt DateTime    @default(now()) @map("checked_at")
+
+  @@index([tripId, category, checkedAt])
+  @@map("price_history")
+}
+
+model Verdict {
+  id             String      @id @default(cuid())
+  tripId         String      @map("trip_id")
+  trip           WatchedTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  signal         String // buy | wait | peak
+  pctVsAverage   Float       @map("pct_vs_average")
+  recommendation String
+  computedAt     DateTime    @default(now()) @map("computed_at")
+
+  @@map("verdicts")
+}
+
+model Itinerary {
+  id          String          @id @default(cuid())
+  tripId      String          @map("trip_id")
+  trip        WatchedTrip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  profileJson Json            @map("profile_json")
+  generatedAt DateTime        @default(now()) @map("generated_at")
+  shareToken  String?         @unique @map("share_token")
+  days        ItineraryDay[]
+
+  @@map("itineraries")
+}
+
+model ItineraryDay {
+  id            String    @id @default(cuid())
+  itineraryId   String    @map("itinerary_id")
+  itinerary     Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  date          DateTime
+  theme         String
+  morningJson   Json      @map("morning_json")
+  afternoonJson Json      @map("afternoon_json")
+  eveningJson   Json      @map("evening_json")
+
+  @@map("itinerary_days")
+}
+
+model SharedLink {
+  id        String      @id @default(cuid())
+  tripId    String      @map("trip_id")
+  trip      WatchedTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  token     String      @unique
+  expiresAt DateTime    @map("expires_at")
+  viewCount Int         @default(0) @map("view_count")
+
+  @@map("shared_links")
+}
