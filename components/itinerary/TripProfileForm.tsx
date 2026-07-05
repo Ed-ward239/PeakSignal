@@ -34,11 +34,12 @@ export function TripProfileForm({
   const [interests, setInterests] = useState<Interest[]>(["food"]);
   const [dietary, setDietary] = useState<string[]>([]);
   const [mobility, setMobility] = useState<Mobility>("standard");
+  const [notes, setNotes] = useState("");
 
   const toggle = <T,>(arr: T[], v: T): T[] => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   function submit() {
-    onGenerate({ group, travellers, budgetPerPersonPerDay: budget, pace, interests, dietary, mobility });
+    onGenerate({ group, travellers, budgetPerPersonPerDay: budget, pace, interests, dietary, mobility, notes: notes.trim() || undefined });
   }
 
   return (
@@ -109,6 +110,17 @@ export function TripProfileForm({
           <option value="standard">Standard</option>
           <option value="wheelchair_accessible">Wheelchair accessible</option>
         </select>
+      </div>
+
+      <div>
+        <SectionTitle>Anything else</SectionTitle>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          placeholder="Other information you'd like to add for this plan…"
+          className="ps-field mt-2.5 w-full resize-y"
+        />
       </div>
 
       <Button size="lg" onClick={submit} disabled={generating} className="w-full sm:w-auto">

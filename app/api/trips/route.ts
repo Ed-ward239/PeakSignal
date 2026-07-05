@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { sampleTrips } from "@/lib/sample-data";
 
 /**
- * CRUD for watched trips (spec §6.2). Demo returns sample data; production
- * reads/writes the watched_trips table via Prisma.
+ * Per-user watched trips (spec §6.2).
+ *
+ * Auth is mid-migration: NextAuth has been removed and Neon Auth lands in
+ * Phase 1, which will restore the session check and the Prisma-backed reads
+ * and writes. Until then these endpoints return 401 and the client store runs
+ * in guest mode (localStorage), so nothing calls them.
  */
 export async function GET() {
-  return NextResponse.json(sampleTrips());
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-export async function POST(req: Request) {
-  const body = await req.json();
-  return NextResponse.json(
-    { ...body, id: `trip_${Date.now().toString(36)}`, createdAt: new Date().toISOString() },
-    { status: 201 },
-  );
+export async function POST() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

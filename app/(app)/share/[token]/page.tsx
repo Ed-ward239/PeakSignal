@@ -1,9 +1,11 @@
 "use client";
 
+import { use } from "react";
 import { Lock } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, SectionTitle } from "@/components/ui/Card";
 import { useStore } from "@/components/store";
+import { SlotImage } from "@/components/itinerary/SlotImage";
 import { asPrice, shortDay } from "@/lib/format";
 
 /**
@@ -11,9 +13,10 @@ import { asPrice, shortDay } from "@/lib/format";
  * against the shared_links table; here it resolves from the local store (same
  * browser), demonstrating the read-only view.
  */
-export default function SharePage({ params }: { params: { token: string } }) {
+export default function SharePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params);
   const { shares, itineraries, hydrated } = useStore();
-  const tripId = shares[params.token];
+  const tripId = shares[token];
   const itinerary = tripId ? itineraries[tripId] : undefined;
 
   if (!hydrated) return <PageShell mode="planning"><div className="h-80 animate-pulse rounded-2xl bg-[var(--surface-2)]" /></PageShell>;
@@ -44,8 +47,14 @@ export default function SharePage({ params }: { params: { token: string } }) {
             <h2 className="mt-1 text-lg font-semibold">{d.theme}</h2>
             <ul className="mt-3 space-y-3">
               {d.slots.map((s, i) => (
-                <li key={i} className="flex items-baseline justify-between gap-4">
-                  <div>
+                <li key={i} className="flex items-start gap-3">
+                  <SlotImage
+                    activity={s.activity}
+                    destination={itinerary.destinationName}
+                    imageUrl={s.imageUrl}
+                    className="h-16 w-16 shrink-0 rounded-lg"
+                  />
+                  <div className="flex-1">
                     <span className="ps-muted text-[12px] uppercase tracking-[0.06em]">{s.period}</span>
                     <p className="text-[15px] font-medium">{s.activity}</p>
                     <p className="ps-muted text-[13px]">{s.why}</p>

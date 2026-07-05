@@ -36,7 +36,7 @@ export function DateHeatMap({ departDate, basePrice }: { departDate: string; bas
 
   return (
     <div>
-      <p className="ps-muted mb-3 text-[13px]">Prices ±7 days around departure. Green is cheapest.</p>
+      <p className="ps-muted mb-3 text-[13px]">Average fare for each departure date (±7 days). Green is cheapest.</p>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
         {cells.map((cell) => {
           const t = max > min ? (cell.price - min) / (max - min) : 0;
