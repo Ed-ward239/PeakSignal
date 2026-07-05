@@ -1,0 +1,10 @@
+{
+  "orgId": "org-misty-poetry-07155673",
+  "projectId": "billowing-union-73673300",
+  "_init": {
+    "features": [
+      "database",
+      "auth"
+    ]
+  }
+}

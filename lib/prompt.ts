@@ -23,6 +23,7 @@ export function contextJSON(profile: TripProfile, destination: string, arrival: 
 
 export function buildPrompt(profile: TripProfile, destination: string, arrival: string, departure: string): string {
   const ctx = JSON.stringify(contextJSON(profile, destination, arrival, departure), null, 2);
+  const notes = profile.notes?.trim();
   return [
     "You are an expert local travel planner. Using ONLY the trip context below,",
     "build a day-by-day itinerary. Each day has a morning, afternoon, and evening",
@@ -33,5 +34,6 @@ export function buildPrompt(profile: TripProfile, destination: string, arrival: 
     "",
     "Trip context:",
     ctx,
+    ...(notes ? ["", "Additional traveller notes (honour these):", notes] : []),
   ].join("\n");
 }

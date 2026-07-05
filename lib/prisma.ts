@@ -1,17 +1,13 @@
+import { PrismaClient } from "@prisma/client";
+
 /**
- * Prisma client singleton (spec §5, §6.3).
- *
- * Scaffolded for the production PostgreSQL path. The running demo uses a
- * client-side store (see components/store.tsx) seeded from sample data, so no
- * database or `@prisma/client` install is required to run locally. To enable:
- *
- *   1. npm i @prisma/client && npm i -D prisma
- *   2. npx prisma generate && npx prisma migrate dev
- *   3. uncomment below and swap API routes to use `prisma`.
- *
- * import { PrismaClient } from "@prisma/client";
- * const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
- * export const prisma = globalForPrisma.prisma ?? new PrismaClient();
- * if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+ * Prisma client singleton (spec §5, §6.3). The client is constructed lazily and
+ * only connects on first query, so importing it is safe even with no
+ * DATABASE_URL — the app stays in guest/localStorage mode until a database and
+ * Google credentials are configured.
  */
-export {};
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

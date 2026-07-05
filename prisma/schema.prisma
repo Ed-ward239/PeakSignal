@@ -1,7 +1,5 @@
-// Peak Signal database schema (spec §6.3).
-// The running demo uses a client-side store; this schema documents the
-// production PostgreSQL model. Run `npx prisma migrate dev` after installing
-// prisma + @prisma/client to activate.
+// Peak Signal database schema (spec §6.3) + Auth.js (NextAuth) models.
+// Activate with a Neon DATABASE_URL: `npx prisma migrate dev`.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,34 +7,83 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Neon: direct (non-pooled) URL for migrations
 }
 
+// ---- Auth.js (NextAuth) standard models ----
+
 model User {
-  id        String       @id @default(cuid())
-  email     String       @unique
-  provider  String?
-  createdAt DateTime     @default(now()) @map("created_at")
-  trips     WatchedTrip[]
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  accounts      Account[]
+  sessions      Session[]
+  trips         WatchedTrip[]
 
   @@map("users")
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---- Peak Signal app models ----
+
 model WatchedTrip {
-  id          String         @id @default(cuid())
-  userId      String         @map("user_id")
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  origin      String
-  destination String
-  departDate  DateTime       @map("depart_date")
-  returnDate  DateTime       @map("return_date")
-  targetPrice Float?         @map("target_price")
-  travellers  Int            @default(1)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  prices      PriceHistory[]
-  verdicts    Verdict[]
-  itineraries Itinerary[]
-  sharedLinks SharedLink[]
+  id              String         @id @default(cuid())
+  userId          String         @map("user_id")
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  origin          String
+  destination     String
+  destinationName String         @map("destination_name")
+  departDate      DateTime       @map("depart_date")
+  returnDate      DateTime       @map("return_date")
+  targetPrice     Float?         @map("target_price")
+  travellers      Int            @default(1)
+  isBooking       Boolean        @default(false) @map("is_booking")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  prices          PriceHistory[]
+  verdicts        Verdict[]
+  itineraries     Itinerary[]
+  sharedLinks     SharedLink[]
 
   @@map("watched_trips")
 }
@@ -45,7 +92,7 @@ model PriceHistory {
   id        String      @id @default(cuid())
   tripId    String      @map("trip_id")
   trip      WatchedTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  category  String // flight | hotel | airbnb | experience
+  category  String
   price     Float
   currency  String      @default("USD")
   checkedAt DateTime    @default(now()) @map("checked_at")
@@ -58,7 +105,7 @@ model Verdict {
   id             String      @id @default(cuid())
   tripId         String      @map("trip_id")
   trip           WatchedTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  signal         String // buy | wait | peak
+  signal         String
   pctVsAverage   Float       @map("pct_vs_average")
   recommendation String
   computedAt     DateTime    @default(now()) @map("computed_at")
@@ -67,12 +114,12 @@ model Verdict {
 }
 
 model Itinerary {
-  id          String          @id @default(cuid())
-  tripId      String          @map("trip_id")
-  trip        WatchedTrip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  profileJson Json            @map("profile_json")
-  generatedAt DateTime        @default(now()) @map("generated_at")
-  shareToken  String?         @unique @map("share_token")
+  id          String         @id @default(cuid())
+  tripId      String         @map("trip_id")
+  trip        WatchedTrip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  profileJson Json           @map("profile_json")
+  generatedAt DateTime       @default(now()) @map("generated_at")
+  shareToken  String?        @unique @map("share_token")
   days        ItineraryDay[]
 
   @@map("itineraries")

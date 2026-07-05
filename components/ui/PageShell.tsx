@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AuthButton } from "@/components/ui/AuthButton";
 
 type Mode = "intelligence" | "planning";
 
@@ -28,12 +29,7 @@ function Nav() {
           <Link href="/watchlist" className="rounded-full px-3 py-1.5 ps-muted hover:text-[var(--text)] transition">
             Watchlist
           </Link>
-          <Link
-            href="/watchlist"
-            className="rounded-full bg-accent px-3.5 py-1.5 font-medium text-white shadow-sm hover:bg-accent/90 transition"
-          >
-            Add a trip
-          </Link>
+          <AuthButton />
         </nav>
       </div>
     </header>

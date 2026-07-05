@@ -37,52 +37,6 @@ export function flightHistory(base: number, curve: Curve): PricePoint[] {
   return points;
 }
 
-let counter = 0;
-const id = (prefix: string) => `${prefix}_${(counter++).toString(36)}${base36(today.getTime())}`;
-const base36 = (n: number) => n.toString(36);
-
-export function sampleTrips(): WatchedTrip[] {
-  return [
-    {
-      id: "trip_paris",
-      origin: "JFK",
-      destination: "CDG",
-      destinationName: "Paris, France",
-      departDate: iso(addDays(today, 18)),
-      returnDate: iso(addDays(today, 28)),
-      travellers: 4,
-      targetPrice: 800,
-      createdAt: iso(today),
-      isBooking: true,
-      priceHistory: flightHistory(940, "dip"),
-    },
-    {
-      id: "trip_tokyo",
-      origin: "SFO",
-      destination: "HND",
-      destinationName: "Tokyo, Japan",
-      departDate: iso(addDays(today, 64)),
-      returnDate: iso(addDays(today, 78)),
-      travellers: 2,
-      targetPrice: 1100,
-      createdAt: iso(addDays(today, -1)),
-      isBooking: false,
-      priceHistory: flightHistory(1180, "rising"),
-    },
-    {
-      id: "trip_lisbon",
-      origin: "BOS",
-      destination: "LIS",
-      destinationName: "Lisbon, Portugal",
-      departDate: iso(addDays(today, 41)),
-      returnDate: iso(addDays(today, 50)),
-      travellers: 1,
-      createdAt: iso(addDays(today, -2)),
-      isBooking: false,
-      priceHistory: flightHistory(690, "peak"),
-    },
-  ];
-}
 
 export const sampleProfile: TripProfile = {
   group: "family",

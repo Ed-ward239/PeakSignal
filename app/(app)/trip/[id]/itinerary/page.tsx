@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { CalendarPlus, FileDown, Share2 } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
 import { TripTabs } from "@/components/ui/TripTabs";
@@ -17,10 +17,11 @@ import { cn } from "@/lib/cn";
 
 const PERIODS: Period[] = ["morning", "afternoon", "evening"];
 
-export default function ItineraryPage({ params }: { params: { id: string } }) {
+export default function ItineraryPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { trips, itineraries, hydrated, setItinerary, createShare } = useStore();
-  const trip = trips.find((t) => t.id === params.id);
-  const itinerary = itineraries[params.id];
+  const trip = trips.find((t) => t.id === id);
+  const itinerary = itineraries[id];
 
   const [generating, setGenerating] = useState(false);
   const [regenerating, setRegenerating] = useState(false);

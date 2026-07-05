@@ -26,7 +26,8 @@ export interface WatchedTrip {
   destination: string;   // IATA / city, e.g. "CDG"
   destinationName: string;
   departDate: string;    // ISO
-  returnDate: string;    // ISO
+  returnDate: string;    // ISO (ignored when roundTrip is false)
+  roundTrip: boolean;
   travellers: number;
   targetPrice?: number;
   createdAt: string;     // ISO
@@ -42,6 +43,18 @@ export interface StayQuote {
   refundable: boolean;
   locationScore: number; // 0–10
   superhost?: boolean;
+}
+
+export interface Flight {
+  id: string;
+  airline: string;
+  flightNumber: string;
+  departTime: string;   // "08:30"
+  arriveTime: string;   // "20:45"
+  durationMins: number;
+  stops: number;        // 0 = nonstop
+  price: number;        // per person
+  bookingUrl: string;
 }
 
 export interface Experience {
@@ -75,6 +88,8 @@ export interface TripProfile {
   interests: Interest[];
   dietary: string[];
   mobility: Mobility;
+  /** Free-text extra context the traveller wants Claude to consider. */
+  notes?: string;
 }
 
 export type Period = "morning" | "afternoon" | "evening";
@@ -88,6 +103,7 @@ export interface Slot {
   why: string;
   lat?: number;
   lng?: number;
+  imageUrl?: string;
 }
 
 export interface ItineraryDay {

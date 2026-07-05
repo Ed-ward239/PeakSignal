@@ -6,6 +6,7 @@ import type { ItineraryDay, Period, Slot } from "@/lib/types";
 import { findAlternatives } from "@/lib/claude";
 import { asPrice } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
+import { SlotImage } from "@/components/itinerary/SlotImage";
 
 const periodIcon: Record<Period, typeof Sun> = { morning: Sunrise, afternoon: Sun, evening: Moon };
 
@@ -55,6 +56,12 @@ export function DayView({
           >
             <div className="flex items-start gap-3">
               <GripVertical size={16} className="ps-muted mt-1 cursor-grab" />
+              <SlotImage
+                activity={slot.activity}
+                destination={destination}
+                imageUrl={slot.imageUrl}
+                className="h-20 w-20 shrink-0 rounded-xl"
+              />
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="ps-muted inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em]">

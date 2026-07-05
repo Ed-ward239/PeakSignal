@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { TripTabs } from "@/components/ui/TripTabs";
 import { SectionTitle } from "@/components/ui/Card";
@@ -7,9 +8,10 @@ import { AccommodationCompare } from "@/components/prices/AccommodationCompare";
 import { useStore } from "@/components/store";
 import { nightsBetween } from "@/lib/format";
 
-export default function ComparePage({ params }: { params: { id: string } }) {
+export default function ComparePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { trips, hydrated } = useStore();
-  const trip = trips.find((t) => t.id === params.id);
+  const trip = trips.find((t) => t.id === id);
 
   if (!hydrated) return <PageShell mode="intelligence"><div className="h-80 animate-pulse rounded-2xl bg-[var(--surface-2)]" /></PageShell>;
   if (!trip) return <PageShell mode="intelligence"><p className="ps-muted py-20 text-center">Trip not found.</p></PageShell>;

@@ -12,11 +12,10 @@ import { differenceInCalendarDays, parseISO } from "date-fns";
 import { getFlightHistory } from "@/lib/amadeus";
 import { computeVerdict } from "@/lib/verdict";
 import { sendPriceAlert } from "@/lib/mailer";
-import { sampleTrips } from "@/lib/sample-data";
 import type { WatchedTrip } from "@/lib/types";
 
 export async function pollWatchedTrips(
-  trips: WatchedTrip[] = sampleTrips(),
+  trips: WatchedTrip[] = [], // production: pass the watched_trips rows from Postgres
   notify: (trip: WatchedTrip, price: number) => Promise<unknown> = (t, p) =>
     sendPriceAlert("demo@peaksignal.app", t, p),
 ): Promise<void> {
