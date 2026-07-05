@@ -29,3 +29,16 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# agent tooling (Neon agent skills — downloaded content + lockfile)
+.agents/
+skills-lock.json
+
+# editor / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# logs
+*.log
