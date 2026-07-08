@@ -43,6 +43,8 @@ export function PriceChart({ history }: { history: PricePoint[] }) {
           <Tooltip
             contentStyle={{
               background: "var(--surface)", border: "1px solid var(--hairline)",
+              backdropFilter: "blur(28px) saturate(180%) brightness(1.06)",
+              WebkitBackdropFilter: "blur(28px) saturate(180%) brightness(1.06)",
               borderRadius: 12, fontSize: 12, color: "var(--text)",
             }}
             labelFormatter={(l) => shortDay(String(l))}

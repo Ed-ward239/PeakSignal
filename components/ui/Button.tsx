@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -12,6 +12,8 @@ const variants: Record<Variant, string> = {
   secondary:
     "bg-[var(--surface-2)] text-[var(--text)] ps-hairline border hover:brightness-[0.98]",
   ghost: "text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10",
+  // Destructive actions (sign out, delete) — the design system's signal red.
+  danger: "bg-signal-peak text-white hover:bg-signal-peak/90 shadow-sm",
 };
 
 const sizes: Record<Size, string> = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, formatISO } from "date-fns";
 import { ArrowRight, LineChart, Scale, Sparkles } from "lucide-react";
@@ -23,6 +23,12 @@ export default function Landing() {
   const [depart, setDepart] = useState(isoDay(addDays(new Date(), 30)));
   const [ret, setRet] = useState(isoDay(addDays(new Date(), 40)));
   const [travellers, setTravellers] = useState(2);
+  const [tracking, setTracking] = useState(false);
+  const [needsDestination, setNeedsDestination] = useState(false);
+  // Read values from the DOM at submit — browser autofill can fill a field
+  // without firing onChange, leaving React state empty ("grayed button" bug).
+  const originRef = useRef<HTMLInputElement>(null);
+  const destRef = useRef<HTMLInputElement>(null);
   const roundTrip = tripType === "round";
   const todayStr = isoDay(new Date());
 
@@ -37,22 +43,59 @@ export default function Landing() {
     );
   }, []);
 
-  function track() {
-    const id = `trip_${(globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)).slice(0, 8)}`;
-    addTrip({
-      id, origin: origin.toUpperCase(), destination: destination.toUpperCase(),
-      destinationName: cityForIata(destination), departDate: depart, returnDate: ret, roundTrip, travellers,
-      createdAt: new Date().toISOString(), isBooking: false,
-      priceHistory: [],
-    });
-    router.push(`/trip/${id}/prices`);
+  /** Resolve free-text input to { code, name } — 3-letter codes short-circuit
+   *  to the local IATA table; anything else asks /api/resolve (Booking.com
+   *  lookup, Redis-cached). Falls back to the raw input if resolution fails. */
+  async function resolveField(raw: string): Promise<{ code: string; name: string }> {
+    const trimmed = raw.trim();
+    if (/^[A-Za-z]{3}$/.test(trimmed)) {
+      const code = trimmed.toUpperCase();
+      return { code, name: cityForIata(code) };
+    }
+    try {
+      const r = await fetch("/api/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: trimmed }),
+      });
+      if (r.ok) {
+        const { place } = (await r.json()) as { place: { code: string; name: string } | null };
+        if (place) return { code: place.code, name: place.name };
+      }
+    } catch {
+      /* fall through */
+    }
+    return { code: trimmed.toUpperCase(), name: cityForIata(trimmed) };
+  }
+
+  async function track() {
+    const originVal = originRef.current?.value ?? origin;
+    const destVal = destRef.current?.value ?? destination;
+    if (!destVal.trim()) {
+      setNeedsDestination(true);
+      return;
+    }
+    setNeedsDestination(false);
+    setTracking(true);
+    try {
+      const [from, to] = await Promise.all([resolveField(originVal), resolveField(destVal)]);
+      const id = `trip_${(globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)).slice(0, 8)}`;
+      addTrip({
+        id, origin: from.code, destination: to.code,
+        destinationName: to.name, departDate: depart, returnDate: ret, roundTrip, travellers,
+        createdAt: new Date().toISOString(), isBooking: false,
+        priceHistory: [],
+      });
+      router.push(`/trip/${id}/prices`);
+    } finally {
+      setTracking(false);
+    }
   }
 
   return (
     <PageShell mode="planning" wide>
-      <section className="animate-fade-up py-5 sm:py-8">
-        <p className="ps-muted text-[13px] font-medium uppercase tracking-[0.12em]">Travel intelligence</p>
-        <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tighter2 sm:text-6xl">
+      <section className="animate-fade-up py-2 sm:py-4">
+        <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tighter2 sm:text-6xl">
           Know when to buy.
           <br />
           Know what to do when you get there.
@@ -63,11 +106,6 @@ export default function Landing() {
           you&rsquo;re travelling with.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          {/* Live demo temporarily disabled
-          <ButtonLink href="/trip/trip_paris/prices" size="lg">
-            See the live demo <ArrowRight size={18} />
-          </ButtonLink>
-          */}
           <ButtonLink href="/watchlist" variant="secondary" size="lg">
             Open watchlist
           </ButtonLink>
@@ -86,6 +124,7 @@ export default function Landing() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="From">
               <input
+                ref={originRef}
                 className="ps-field w-full"
                 value={origin}
                 placeholder="Type your Departure Airport Code or City"
@@ -94,11 +133,18 @@ export default function Landing() {
             </Field>
             <Field label="To">
               <input
+                ref={destRef}
                 className="ps-field w-full"
                 value={destination}
                 placeholder="Type your Arrival Airport Code or City"
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  if (needsDestination && e.target.value.trim()) setNeedsDestination(false);
+                }}
               />
+              {needsDestination && (
+                <p className="mt-1.5 text-[12px] text-signal-peak">Enter a destination to start tracking.</p>
+              )}
             </Field>
           </div>
           {/* Row 2 — dates, travellers, action */}
@@ -132,7 +178,9 @@ export default function Landing() {
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </Field>
-            <Button size="lg" onClick={track} className="w-full sm:w-auto">Track prices</Button>
+            <Button size="lg" onClick={track} disabled={tracking} className="w-full sm:w-auto">
+              {tracking ? "Locating…" : "Track prices"}
+            </Button>
           </div>
         </div>
       </Card>

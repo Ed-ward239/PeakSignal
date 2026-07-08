@@ -26,7 +26,7 @@ export default function ComparePage({ params }: { params: Promise<{ id: string }
           <h1 className="mt-4 text-3xl font-semibold tracking-tighter2">Where to stay</h1>
           <p className="ps-muted mt-1 text-[15px]">Best hotel vs best Airbnb for {trip.destinationName}, {nights} nights.</p>
         </div>
-        <AccommodationCompare destination={trip.destinationName} nights={nights} />
+        <AccommodationCompare trip={trip} />
       </div>
     </PageShell>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowUpRight, ChevronDown, ChevronUp, GripVertical, Moon, RefreshCw, Sun, Sunrise, Wand2 } from "lucide-react";
 import type { ItineraryDay, Period, Slot } from "@/lib/types";
-import { findAlternatives } from "@/lib/claude";
+import { findAlternatives } from "@/lib/itinerary-client";
 import { asPrice } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { SlotImage } from "@/components/itinerary/SlotImage";

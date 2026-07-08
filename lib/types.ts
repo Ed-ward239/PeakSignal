@@ -33,6 +33,13 @@ export interface WatchedTrip {
   createdAt: string;     // ISO
   isBooking: boolean;
   priceHistory: PricePoint[];
+  /** Flights the traveller picked — the itinerary planner works around their times. */
+  selectedFlights?: SelectedFlights;
+}
+
+export interface SelectedFlights {
+  outbound?: Flight;
+  return?: Flight;
 }
 
 export interface StayQuote {
@@ -45,6 +52,19 @@ export interface StayQuote {
   superhost?: boolean;
 }
 
+/** One flight leg (used in the expanded Google Flights–style detail view). */
+export interface FlightLeg {
+  departTime: string;   // ISO, e.g. "2026-11-21T19:25:00" — full date for layover math
+  arriveTime: string;   // ISO
+  fromCode: string;     // "JFK"
+  fromName: string;     // "John F. Kennedy International Airport"
+  toCode: string;
+  toName: string;
+  airline: string;
+  flightNumber: string; // "FI 614"
+  durationMins: number;
+}
+
 export interface Flight {
   id: string;
   airline: string;
@@ -55,6 +75,7 @@ export interface Flight {
   stops: number;        // 0 = nonstop
   price: number;        // per person
   bookingUrl: string;
+  legs?: FlightLeg[];   // per-leg detail incl. layover airports
 }
 
 export interface Experience {
@@ -114,6 +135,20 @@ export interface ItineraryDay {
   slots: Slot[];
 }
 
+/** Flight timing context handed to the itinerary planner. */
+export interface FlightContext {
+  arrivalAt?: string;      // ISO datetime the traveller lands at the destination
+  departureAt?: string;    // ISO datetime the return flight leaves
+  outboundSummary?: string; // "Icelandair FI 614 · lands 12:10"
+  returnSummary?: string;
+}
+
+/** A to-do to complete before the trip (advance bookings, passes, etc.). */
+export interface PreTripItem {
+  task: string;
+  note?: string;
+}
+
 export interface Itinerary {
   id: string;
   tripId: string;
@@ -123,5 +158,28 @@ export interface Itinerary {
   generatedAt: string;   // ISO
   profile?: TripProfile;
   days: ItineraryDay[];
+  /** "Before you go" checklist (generated alongside the plan). */
+  preTrip?: PreTripItem[];
+  /** True when the plan was generated around real flight times. */
+  flightAware?: boolean;
   shareToken?: string;
 }
+
+// ---- Account ----
+
+export type AlertFrequency = "instant" | "daily" | "weekly";
+
+/** Notification preferences (Settings page; consumed by the cron poller). */
+export interface NotificationSettings {
+  emailPriceDrop: boolean; // price falls below target
+  emailBuySignal: boolean; // verdict flips to BUY
+  weeklyDigest: boolean;   // weekly price summary
+  frequency: AlertFrequency;
+}
+
+export const DEFAULT_SETTINGS: NotificationSettings = {
+  emailPriceDrop: true,
+  emailBuySignal: true,
+  weeklyDigest: false,
+  frequency: "instant",
+};

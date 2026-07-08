@@ -9,7 +9,7 @@
  * a Resend email when the price drops below the user's target.
  */
 import { differenceInCalendarDays, parseISO } from "date-fns";
-import { getFlightHistory } from "@/lib/amadeus";
+import { flightHistory } from "@/lib/sample-data";
 import { computeVerdict } from "@/lib/verdict";
 import { sendPriceAlert } from "@/lib/mailer";
 import type { WatchedTrip } from "@/lib/types";
@@ -20,7 +20,10 @@ export async function pollWatchedTrips(
     sendPriceAlert("demo@peaksignal.app", t, p),
 ): Promise<void> {
   for (const trip of trips) {
-    const history = await getFlightHistory(trip.origin, trip.destination);
+    // Production: check the live price via lib/flights getFlights(trip) and
+    // append it to price_history — real history accrues per poll. The sample
+    // curve stands in until this poller is scheduled.
+    const history = flightHistory(900, "dip");
     const current = history.at(-1)?.average ?? Infinity;
     const daysToDeparture = differenceInCalendarDays(parseISO(trip.departDate), new Date());
     const verdict = computeVerdict(history, daysToDeparture);

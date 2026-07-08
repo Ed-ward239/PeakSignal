@@ -23,9 +23,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * Applies the stored theme (Settings → Appearance) to <html> before first paint
+ * so there's no light/dark flash. Dark is the default. Kept inline & tiny; must
+ * mirror lib/theme.ts (THEME_KEY).
+ */
+const themeScript = `try{if((localStorage.getItem("peaksignal.theme.v1")||"dark")==="dark")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-sans antialiased">
         <AuthProvider>
           <StoreProvider>{children}</StoreProvider>

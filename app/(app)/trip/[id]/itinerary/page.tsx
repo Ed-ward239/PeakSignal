@@ -1,25 +1,48 @@
 "use client";
 
 import { use, useState } from "react";
-import { CalendarPlus, FileDown, Share2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CalendarPlus, CheckCircle2, FileDown, RotateCcw, Share2 } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
 import { TripTabs } from "@/components/ui/TripTabs";
 import { Button } from "@/components/ui/Button";
+import { Card, SectionTitle } from "@/components/ui/Card";
 import { TripProfileForm } from "@/components/itinerary/TripProfileForm";
 import { DayView } from "@/components/itinerary/DayView";
 import { ItineraryMap } from "@/components/itinerary/ItineraryMap";
 import { BudgetTracker } from "@/components/itinerary/BudgetTracker";
 import { useStore } from "@/components/store";
-import { generateItinerary, regenerateDay } from "@/lib/claude";
+import { generateItinerary, regenerateDay } from "@/lib/itinerary-client";
 import { itineraryToICS } from "@/lib/ics";
-import type { Itinerary, Period, Slot, TripProfile } from "@/lib/types";
+import { asPrice, shortDay } from "@/lib/format";
+import type { FlightContext, Itinerary, Period, Slot, TripProfile, WatchedTrip } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 const PERIODS: Period[] = ["morning", "afternoon", "evening"];
 
+/** Timing context from the traveller's selected flights (Flights tab). */
+function flightContext(trip: WatchedTrip): FlightContext | undefined {
+  const sel = trip.selectedFlights;
+  if (!sel?.outbound && !sel?.return) return undefined;
+  const outLegs = sel?.outbound?.legs ?? [];
+  const backLegs = sel?.return?.legs ?? [];
+  return {
+    arrivalAt: outLegs[outLegs.length - 1]?.arriveTime || undefined,
+    departureAt: backLegs[0]?.departTime || undefined,
+    outboundSummary: sel?.outbound
+      ? `${sel.outbound.airline} ${sel.outbound.flightNumber} · lands ${sel.outbound.arriveTime}`
+      : undefined,
+    returnSummary: sel?.return
+      ? `${sel.return.airline} ${sel.return.flightNumber} · departs ${sel.return.departTime}`
+      : undefined,
+  };
+}
+
 export default function ItineraryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { trips, itineraries, hydrated, setItinerary, createShare } = useStore();
+  const router = useRouter();
+  const { trips, itineraries, hydrated, signedIn, setItinerary, removeItinerary, updateTrip, createShare } = useStore();
   const trip = trips.find((t) => t.id === id);
   const itinerary = itineraries[id];
 
@@ -33,7 +56,10 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   async function onGenerate(profile: TripProfile) {
     setGenerating(true);
-    const it = await generateItinerary(profile, trip!.destinationName, trip!.departDate, trip!.returnDate, trip!.id);
+    const it = await generateItinerary(
+      profile, trip!.destinationName, trip!.departDate, trip!.returnDate, trip!.id,
+      flightContext(trip!),
+    );
     setItinerary(it);
     setGenerating(false);
   }
@@ -82,6 +108,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     setShareLink(`${location.origin}/share/${token}`);
   }
 
+  /** Start over: drop the plan + flight selection, back to picking flights. */
+  function replan() {
+    if (!confirm("Start over? This deletes the current plan and your flight selection.")) return;
+    removeItinerary(trip!.id);
+    updateTrip(trip!.id, { selectedFlights: {}, isBooking: false });
+    router.push(`/trip/${trip!.id}/prices`);
+  }
+
   // ---- Profile form (no itinerary yet) ----
   if (!itinerary) {
     return (
@@ -91,6 +125,15 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             <TripTabs id={trip.id} />
             <h1 className="mt-4 text-3xl font-semibold tracking-tighter2">Plan {trip.destinationName}</h1>
             <p className="ps-muted mt-1 text-[15px]">A fresh profile for this trip — who&rsquo;s coming changes everything.</p>
+            {!flightContext(trip) && (
+              <p className="mt-1.5 text-[13px] text-signal-wait">
+                No flights selected — this plan won&rsquo;t account for your arrival and departure
+                times.{" "}
+                <Link href={`/trip/${trip.id}/prices`} className="text-accent hover:underline">
+                  Pick flights first
+                </Link>
+              </p>
+            )}
           </div>
           <TripProfileForm defaultTravellers={trip.travellers} generating={generating} onGenerate={onGenerate} />
         </div>
@@ -104,14 +147,60 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   return (
     <PageShell mode="planning" wide>
-      <div className="animate-fade-up space-y-6">
+      {/* Print-only (the PDF button = window.print): every day's cards, no app
+          chrome — the interactive planner below is print:hidden. */}
+      <section className="hidden print:block">
+        <h1 className="text-2xl font-semibold">{itinerary.destinationName} — {days.length}-day itinerary</h1>
+        <p className="ps-muted mt-1 text-[13px]">
+          {shortDay(itinerary.arrival)} – {shortDay(itinerary.departure)} · Peak Signal
+        </p>
+        {itinerary.preTrip && itinerary.preTrip.length > 0 && (
+          <div className="mt-5">
+            <h2 className="border-b ps-hairline pb-1 text-[16px] font-semibold">Before you go</h2>
+            {itinerary.preTrip.map((t, i) => (
+              <div key={i} className="mt-2 text-[13px]" style={{ breakInside: "avoid" }}>
+                <p>☐ <strong>{t.task}</strong></p>
+                {t.note && <p className="ps-muted">{t.note}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        {days.map((d) => (
+          <div key={d.id} className="mt-5">
+            <h2 className="border-b ps-hairline pb-1 text-[16px] font-semibold">
+              Day {d.dayIndex + 1} · {d.theme} <span className="ps-muted font-normal">({shortDay(d.date)})</span>
+            </h2>
+            {d.slots.map((s, i) => (
+              <div key={i} className="mt-2 text-[13px]" style={{ breakInside: "avoid" }}>
+                <p>
+                  <strong className="capitalize">{s.period}</strong> — {s.activity}
+                  {" · "}{s.durationMins} min · {asPrice(s.costPerPerson)}/person
+                </p>
+                {s.why && <p className="ps-muted">{s.why}</p>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      <div className="animate-fade-up space-y-6 print:hidden">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <TripTabs id={trip.id} />
             <h1 className="mt-4 text-3xl font-semibold tracking-tighter2">{itinerary.destinationName}</h1>
-            <p className="ps-muted mt-1 text-[14px]">{days.length}-day plan · generated by Claude</p>
+            <p className="ps-muted mt-1 text-[14px]">
+              {days.length}-day plan · generated by Gemini
+              {!itinerary.flightAware && (
+                <span className="text-signal-wait"> · planned without flight times</span>
+              )}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {signedIn && (
+              <Button variant="secondary" size="sm" onClick={replan}>
+                <RotateCcw size={15} /> Re-plan
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={downloadICS}><CalendarPlus size={15} /> Calendar (.ics)</Button>
             <Button variant="secondary" size="sm" onClick={() => window.print()}><FileDown size={15} /> PDF</Button>
             <Button size="sm" onClick={share}><Share2 size={15} /> Share</Button>
@@ -141,19 +230,38 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <DayView
-            key={current.id}
-            day={current}
-            destination={itinerary.destinationName}
-            regenerating={regenerating}
-            onRegenerate={() => onRegenerate(current.id)}
-            onReplaceSlot={(index, slot) => onReplaceSlot(current.id, index, slot)}
-            onReorder={(from, to) => onReorder(current.id, from, to)}
-          />
-          <div className="space-y-6">
-            <ItineraryMap itinerary={itinerary} />
+        <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+          {/* Cards first on mobile; on desktop the map takes the big left column. */}
+          <div className="lg:order-2">
+            <DayView
+              key={current.id}
+              day={current}
+              destination={itinerary.destinationName}
+              regenerating={regenerating}
+              onRegenerate={() => onRegenerate(current.id)}
+              onReplaceSlot={(index, slot) => onReplaceSlot(current.id, index, slot)}
+              onReorder={(from, to) => onReorder(current.id, from, to)}
+            />
+          </div>
+          <div className="space-y-6 lg:order-1">
+            <ItineraryMap itinerary={itinerary} tall />
             <BudgetTracker itinerary={itinerary} />
+            {itinerary.preTrip && itinerary.preTrip.length > 0 && (
+              <Card>
+                <SectionTitle>Before you go</SectionTitle>
+                <ul className="mt-3 space-y-2.5">
+                  {itinerary.preTrip.map((t, i) => (
+                    <li key={i} className="flex gap-2.5 text-[13px]">
+                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
+                      <div className="min-w-0">
+                        <p className="font-medium">{t.task}</p>
+                        {t.note && <p className="ps-muted">{t.note}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -4,11 +4,12 @@ import type { WatchedTrip } from "@/lib/types";
 
 /**
  * Flight options for a trip (spec §3.1). Runs server-side so the RapidAPI key
- * stays secret; the client posts the trip and gets back mapped Flight[] (live
- * Booking.com data, or mock when the API is unavailable).
+ * stays secret; the client posts the trip and gets back `{ flights, degraded }`
+ * — `degraded` is true when the provider refused us (rate limit / quota), so
+ * the UI can say that instead of implying no flights exist.
  */
 export async function POST(req: Request) {
   const trip = (await req.json()) as WatchedTrip;
-  const flights = await getFlights(trip);
-  return NextResponse.json(flights);
+  const result = await getFlights(trip);
+  return NextResponse.json(result);
 }

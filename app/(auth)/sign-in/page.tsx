@@ -1,15 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { authClient } from "@/lib/auth/client";
 
 /**
- * Sign-in. NextAuth has been removed; Neon Auth (Google OAuth) is wired in
- * Phase 1. Until then the app runs in guest mode and this shows a disabled
- * button so the screen is intact.
+ * Sign-in (spec §5). Google OAuth via Neon Auth (Better Auth). The client posts
+ * to /api/auth/*, which the server proxies to Neon Auth; on success the user is
+ * redirected to the watchlist.
  */
 export default function SignInPage() {
+  const signInWithGoogle = () =>
+    authClient.signIn.social({ provider: "google", callbackURL: "/watchlist" });
+
   return (
     <PageShell mode="planning">
       <div className="mx-auto max-w-sm py-16">
@@ -18,16 +23,13 @@ export default function SignInPage() {
           Sign in to save your watchlist and sync it across devices.
         </p>
         <Card className="mt-8">
-          <div className="text-center">
-            <Button variant="secondary" className="w-full" disabled>
-              <GoogleMark /> Continue with Google
-            </Button>
-            <p className="ps-muted mt-3 text-[13px]">
-              Sign-in isn&rsquo;t enabled in this build yet. Until then, your watchlist is
-              saved locally in this browser.
-            </p>
-          </div>
+          <Button className="w-full" onClick={signInWithGoogle}>
+            <GoogleMark /> Continue with Google
+          </Button>
         </Card>
+        <p className="ps-muted mt-4 text-center text-[12px]">
+          <Link href="/privacy" className="hover:text-[var(--text)] transition">How we handle your data</Link>
+        </p>
       </div>
     </PageShell>
   );

@@ -29,8 +29,9 @@ const config: Config = {
           muted: "#6E6E73",
         },
         accent: {
-          DEFAULT: "#0369A1",
-          soft: "#0EA5E9",
+          // Brand green — matches the logo (public/icon.svg) and the buy signal.
+          DEFAULT: "#10B981",
+          soft: "#34D399",
         },
       },
       fontFamily: {
@@ -47,8 +48,8 @@ const config: Config = {
         content: "1280px",
       },
       borderRadius: {
-        xl: "14px",
-        "2xl": "20px",
+        xl: "16px",
+        "2xl": "24px",
       },
       boxShadow: {
         card: "0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -12px rgba(0,0,0,0.12)",

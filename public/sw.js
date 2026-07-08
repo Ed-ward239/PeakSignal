@@ -2,7 +2,7 @@
 // Strategy: network-first for navigations (fresh prices when online, cached
 // shell when offline), stale-while-revalidate for static assets.
 
-const CACHE = "peaksignal-v1";
+const CACHE = "peaksignal-v2"; // bump purges older caches on activate
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
@@ -20,6 +20,10 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
+  // Never cache API responses — prices, trips, and settings must stay live.
+  const url = new URL(request.url);
+  if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(

@@ -1,18 +1,20 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { authClient } from "@/lib/auth/client";
 import type { Itinerary, WatchedTrip } from "@/lib/types";
 
 /**
  * Client data layer.
  *
- *  - Signed in  → watched trips live in Postgres via /api/trips (synced here).
- *  - Guest      → trips live in localStorage, seeded from sample data so the
- *                 demo works with no account (spec §9) and survives offline
- *                 (spec §4.3 — offline resilience).
+ *  - Signed in  → watched trips AND itineraries live in Postgres via the API
+ *                 (synced here, optimistic writes).
+ *  - Guest      → trips live in localStorage (survive restarts); itineraries
+ *                 are SESSION-ONLY by design (sessionStorage) — closing the
+ *                 browser discards a guest's generated plans.
  *
- * Itineraries and share tokens are kept in localStorage in both modes; wiring
- * them to the DB is the same pattern as trips.
+ * Share tokens stay in localStorage in both modes (the share page resolves
+ * them against this browser).
  */
 
 interface StoreShape {
@@ -25,47 +27,48 @@ interface StoreShape {
   removeTrip: (id: string) => void;
   updateTrip: (id: string, patch: Partial<WatchedTrip>) => void;
   setItinerary: (it: Itinerary) => void;
+  removeItinerary: (tripId: string) => void;
   createShare: (tripId: string) => string;
 }
 
 const TRIPS_KEY = "peaksignal.trips.v1";
-const PLANS_KEY = "peaksignal.plans.v1";
+const SHARES_KEY = "peaksignal.shares.v1";
+const ITINS_SESSION_KEY = "peaksignal.itineraries.v1"; // sessionStorage (guests)
 const StoreContext = createContext<StoreShape | null>(null);
 
-interface Plans {
-  itineraries: Record<string, Itinerary>;
-  shares: Record<string, string>;
-}
-
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  // Auth is being migrated (NextAuth removed; Neon Auth lands in Phase 1). The app
-  // runs in guest mode meanwhile — trips live in localStorage. The DB-backed paths
-  // below stay in place, gated on `signedIn`, ready for Phase 1 to flip on.
-  const status = "unauthenticated" as "loading" | "authenticated" | "unauthenticated";
-  const signedIn: boolean = false;
+  // Neon Auth session. Signed in → DB via the API; signed out → guest mode.
+  const { data: sessionData, isPending } = authClient.useSession();
+  const signedIn = Boolean(sessionData?.user);
+  const status: "loading" | "authenticated" | "unauthenticated" = isPending
+    ? "loading"
+    : signedIn
+      ? "authenticated"
+      : "unauthenticated";
 
   const [hydrated, setHydrated] = useState(false);
   const [trips, setTrips] = useState<WatchedTrip[]>([]);
   const [dbMode, setDbMode] = useState(false); // true only when signed in AND the API is DB-backed
-  const [plans, setPlans] = useState<Plans>({ itineraries: {}, shares: {} });
+  const [itineraries, setItineraries] = useState<Record<string, Itinerary>>({});
+  const [shares, setShares] = useState<Record<string, string>>({});
 
-  // Plans (itineraries + shares) — localStorage in both modes.
+  // Shares — localStorage in both modes.
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(PLANS_KEY);
-      if (raw) setPlans(JSON.parse(raw) as Plans);
+      const raw = localStorage.getItem(SHARES_KEY);
+      if (raw) setShares(JSON.parse(raw) as Record<string, string>);
     } catch {
       /* ignore */
     }
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
-  }, [plans, hydrated]);
+    if (hydrated) localStorage.setItem(SHARES_KEY, JSON.stringify(shares));
+  }, [shares, hydrated]);
 
-  // Trips — use the DB when signed in AND the API is DB-backed; otherwise fall
-  // back to the local (seeded) watchlist, so signing in without a database
-  // configured doesn't blank the list.
+  // Trips + itineraries — DB when signed in AND the API is DB-backed; otherwise
+  // local (trips: localStorage; itineraries: sessionStorage), so signing in
+  // without a database configured doesn't blank the list.
   useEffect(() => {
     if (status === "loading") return;
     let active = true;
@@ -79,16 +82,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } catch {
         setTrips([]);
       }
+      try {
+        const raw = sessionStorage.getItem(ITINS_SESSION_KEY);
+        setItineraries(raw ? (JSON.parse(raw) as Record<string, Itinerary>) : {});
+      } catch {
+        setItineraries({});
+      }
       setDbMode(false);
     };
     (async () => {
       if (signedIn) {
         try {
-          const r = await fetch("/api/trips");
-          if (r.ok) {
-            const data = await r.json();
+          const [tripsRes, itinsRes] = await Promise.all([
+            fetch("/api/trips"),
+            fetch("/api/itineraries"),
+          ]);
+          if (tripsRes.ok) {
+            const data = await tripsRes.json();
             if (Array.isArray(data)) {
-              if (active) { setTrips(data); setDbMode(true); }
+              if (!active) return;
+              setTrips(data);
+              setDbMode(true);
+              if (itinsRes.ok) {
+                const itins = await itinsRes.json().catch(() => null);
+                if (itins && typeof itins === "object") setItineraries(itins as Record<string, Itinerary>);
+              }
               return;
             }
           }
@@ -101,10 +119,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, [status, signedIn]);
 
-  // Persist trips locally only in local mode (the DB owns them in DB mode).
+  // Persist locally only in guest mode (the DB owns the data in DB mode).
   useEffect(() => {
     if (hydrated && !dbMode) localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
   }, [trips, hydrated, dbMode]);
+
+  useEffect(() => {
+    if (hydrated && !dbMode) sessionStorage.setItem(ITINS_SESSION_KEY, JSON.stringify(itineraries));
+  }, [itineraries, hydrated, dbMode]);
 
   const addTrip = (t: WatchedTrip) => {
     setTrips((s) => [t, ...s]);
@@ -133,19 +155,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const setItinerary = (it: Itinerary) =>
-    setPlans((p) => ({ ...p, itineraries: { ...p.itineraries, [it.tripId]: it } }));
+  const setItinerary = (it: Itinerary) => {
+    setItineraries((s) => ({ ...s, [it.tripId]: it }));
+    if (dbMode) {
+      fetch(`/api/trips/${it.tripId}/itinerary`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(it),
+      }).catch(() => {});
+    }
+  };
+
+  const removeItinerary = (tripId: string) => {
+    setItineraries((s) => {
+      const { [tripId]: _gone, ...rest } = s;
+      void _gone;
+      return rest;
+    });
+    if (dbMode) fetch(`/api/trips/${tripId}/itinerary`, { method: "DELETE" }).catch(() => {});
+  };
 
   const createShare = (tripId: string) => {
     const token = Math.random().toString(36).slice(2, 10);
-    setPlans((p) => ({ ...p, shares: { ...p.shares, [token]: tripId } }));
+    setShares((s) => ({ ...s, [token]: tripId }));
     return token;
   };
 
   const value: StoreShape = {
-    hydrated, signedIn, trips,
-    itineraries: plans.itineraries, shares: plans.shares,
-    addTrip, removeTrip, updateTrip, setItinerary, createShare,
+    hydrated, signedIn, trips, itineraries, shares,
+    addTrip, removeTrip, updateTrip, setItinerary, removeItinerary, createShare,
   };
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
