@@ -7,7 +7,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { SignalBadge } from "@/components/ui/SignalBadge";
 import { useStore } from "@/components/store";
 import { verdictForTrip } from "@/lib/verdict";
-import { asPrice, shortDay } from "@/lib/format";
+import { asPrice, cabinLabel, shortDay } from "@/lib/format";
 
 export default function WatchlistPage() {
   const { trips, removeTrip, hydrated } = useStore();
@@ -44,7 +44,7 @@ export default function WatchlistPage() {
                         <ArrowUpRight size={15} className="ps-muted opacity-0 transition group-hover:opacity-100" />
                       </div>
                       <p className="ps-muted ps-data mt-0.5 text-[13px]">
-                        {trip.origin} → {trip.destination} · {shortDay(trip.departDate)}–{shortDay(trip.returnDate)} · {trip.travellers} pax
+                        {trip.origin} → {trip.destination} · {shortDay(trip.departDate)}–{shortDay(trip.returnDate)} · {trip.travellers} pax · {cabinLabel(trip.cabinClass)}
                       </p>
                     </div>
                     <div className="text-right">

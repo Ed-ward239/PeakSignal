@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Segmented } from "@/components/ui/Segmented";
 import { useStore } from "@/components/store";
 import { cityForIata, nearestAirport } from "@/lib/iata";
+import type { CabinClass } from "@/lib/types";
 
 const isoDay = (d: Date) => formatISO(d, { representation: "date" });
 
@@ -23,6 +24,7 @@ export default function Landing() {
   const [depart, setDepart] = useState(isoDay(addDays(new Date(), 30)));
   const [ret, setRet] = useState(isoDay(addDays(new Date(), 40)));
   const [travellers, setTravellers] = useState(2);
+  const [cabinClass, setCabinClass] = useState<CabinClass>("ECONOMY");
   const [tracking, setTracking] = useState(false);
   const [needsDestination, setNeedsDestination] = useState(false);
   // Read values from the DOM at submit — browser autofill can fill a field
@@ -83,6 +85,7 @@ export default function Landing() {
       addTrip({
         id, origin: from.code, destination: to.code,
         destinationName: to.name, departDate: depart, returnDate: ret, roundTrip, travellers,
+        cabinClass,
         createdAt: new Date().toISOString(), isBooking: false,
         priceHistory: [],
       });
@@ -96,14 +99,11 @@ export default function Landing() {
     <PageShell mode="planning" wide>
       <section className="animate-fade-up py-2 sm:py-4">
         <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tighter2 sm:text-6xl">
-          Know when to buy.
-          <br />
-          Know what to do when you get there.
+          Time your trip right.
         </h1>
         <p className="ps-muted mt-5 max-w-2xl text-[17px] leading-relaxed sm:text-[19px]">
-          Flight, hotel, and Airbnb prices tracked honestly — no commissions, no upsells. When
-          you&rsquo;re ready to book, a per-trip AI itinerary built from scratch around who
-          you&rsquo;re travelling with.
+          We track flight and hotel prices, tell you when to book, and plan your days once
+          you do.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <ButtonLink href="/watchlist" variant="secondary" size="lg">
@@ -148,7 +148,7 @@ export default function Landing() {
             </Field>
           </div>
           {/* Row 2 — dates, travellers, action */}
-          <div className={`grid gap-3 sm:items-end ${roundTrip ? "sm:grid-cols-[1fr_1fr_1fr_auto]" : "sm:grid-cols-[1fr_1fr_auto]"}`}>
+          <div className={`grid gap-3 sm:items-end ${roundTrip ? "sm:grid-cols-[1fr_1fr_0.7fr_0.9fr_auto]" : "sm:grid-cols-[1fr_0.7fr_0.9fr_auto]"}`}>
             <Field label="Depart">
               <input
                 type="date"
@@ -176,6 +176,13 @@ export default function Landing() {
             <Field label="Travellers">
               <select className="ps-field w-full" value={travellers} onChange={(e) => setTravellers(Number(e.target.value))}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </Field>
+            <Field label="Class">
+              <select className="ps-field w-full" value={cabinClass} onChange={(e) => setCabinClass(e.target.value as CabinClass)}>
+                <option value="ECONOMY">Economy</option>
+                <option value="BUSINESS">Business</option>
+                <option value="FIRST">First class</option>
               </select>
             </Field>
             <Button size="lg" onClick={track} disabled={tracking} className="w-full sm:w-auto">

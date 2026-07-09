@@ -13,7 +13,7 @@ import type { WatchedTrip } from "@/lib/types";
  */
 type DbTrip = {
   id: string; origin: string; destination: string; destinationName: string;
-  departDate: Date; returnDate: Date; travellers: number;
+  departDate: Date; returnDate: Date; travellers: number; cabinClass: string;
   targetPrice: number | null; isBooking: boolean; createdAt: Date;
   selectedFlights: unknown;
 };
@@ -28,6 +28,7 @@ function toClient(t: DbTrip): WatchedTrip {
     returnDate: t.returnDate.toISOString().slice(0, 10),
     roundTrip: true,
     travellers: t.travellers,
+    cabinClass: (t.cabinClass as WatchedTrip["cabinClass"]) ?? "ECONOMY",
     targetPrice: t.targetPrice ?? undefined,
     createdAt: t.createdAt.toISOString(),
     isBooking: t.isBooking,
@@ -60,6 +61,7 @@ export async function POST(req: Request) {
       departDate: new Date(b.departDate ?? Date.now()),
       returnDate: new Date(b.returnDate ?? Date.now()),
       travellers: b.travellers ?? 1,
+      cabinClass: b.cabinClass ?? "ECONOMY",
       targetPrice: b.targetPrice ?? null,
       isBooking: b.isBooking ?? false,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

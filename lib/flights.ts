@@ -92,7 +92,7 @@ async function searchOnce(
     returnDate: trip.roundTrip ? trip.returnDate : undefined,
     adults: trip.travellers || 1,
     sort,
-    cabinClass: "ECONOMY",
+    cabinClass: trip.cabinClass ?? "ECONOMY",
     currency_code: "USD",
   }, TTL_SEARCH);
   const offers = res.data?.data?.flightOffers;

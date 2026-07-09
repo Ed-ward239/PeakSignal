@@ -42,6 +42,7 @@ model WatchedTrip {
   returnDate      DateTime       @map("return_date")
   targetPrice     Float?         @map("target_price")
   travellers      Int            @default(1)
+  cabinClass      String         @default("ECONOMY") @map("cabin_class") // ECONOMY | BUSINESS | FIRST
   isBooking       Boolean        @default(false) @map("is_booking")
   // Traveller-picked flights ({ outbound?, return? } as client Flight JSON) —
   // the itinerary planner reads their arrival/departure times.

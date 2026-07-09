@@ -33,3 +33,8 @@ export function daysFromNow(iso: string): number {
 export function nightsBetween(arrival: string, departure: string): number {
   return Math.max(1, differenceInCalendarDays(parseISO(departure), parseISO(arrival)));
 }
+
+/** Display label for a cabin class ("ECONOMY" → "Economy"). */
+export function cabinLabel(cabin?: string): string {
+  return { ECONOMY: "Economy", BUSINESS: "Business", FIRST: "First class" }[cabin ?? "ECONOMY"] ?? "Economy";
+}

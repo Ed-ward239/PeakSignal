@@ -5,9 +5,9 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "Peak Signal — Know when to buy. Know what to do when you get there.",
+  title: "Peak Signal — Time your trip right",
   description:
-    "Travel intelligence: honest flight, hotel & Airbnb price tracking with a data-driven buy/wait verdict, plus a per-trip AI itinerary planner.",
+    "We track flight and hotel prices, tell you when to book, and plan your days once you do.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Peak Signal" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },

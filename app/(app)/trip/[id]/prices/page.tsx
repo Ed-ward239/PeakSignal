@@ -15,7 +15,7 @@ import { DateHeatMap } from "@/components/prices/DateHeatMap";
 import { FlightsList } from "@/components/prices/FlightsList";
 import { useStore } from "@/components/store";
 import { verdictForTrip } from "@/lib/verdict";
-import { asPrice, shortDay } from "@/lib/format";
+import { asPrice, cabinLabel, shortDay } from "@/lib/format";
 import type { Flight } from "@/lib/types";
 
 export default function PricesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -147,6 +147,7 @@ export default function PricesPage({ params }: { params: Promise<{ id: string }>
               ? `${shortDay(trip.departDate)}–${shortDay(trip.returnDate)}`
               : shortDay(trip.departDate)}
             {" · "}{trip.roundTrip ? "Round trip" : "One way"}
+            {" · "}{cabinLabel(trip.cabinClass)}
           </p>
           <div className="mt-3 flex items-baseline gap-3">
             {flights === null ? (

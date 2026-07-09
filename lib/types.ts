@@ -20,6 +20,9 @@ export interface PricePoint {
   category: PriceCategory;
 }
 
+/** Cabin class for flight search (Booking.com values). */
+export type CabinClass = "ECONOMY" | "BUSINESS" | "FIRST";
+
 export interface WatchedTrip {
   id: string;
   origin: string;        // IATA, e.g. "JFK"
@@ -29,6 +32,8 @@ export interface WatchedTrip {
   returnDate: string;    // ISO (ignored when roundTrip is false)
   roundTrip: boolean;
   travellers: number;
+  /** Seat class searched/tracked; legacy trips without one mean ECONOMY. */
+  cabinClass?: CabinClass;
   targetPrice?: number;
   createdAt: string;     // ISO
   isBooking: boolean;

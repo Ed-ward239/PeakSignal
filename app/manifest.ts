@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Peak Signal — Travel Intelligence",
     short_name: "Peak Signal",
     description:
-      "Honest travel price tracking with a buy/wait verdict, plus a per-trip AI itinerary planner.",
+      "We track flight and hotel prices, tell you when to book, and plan your days once you do.",
     start_url: "/",
     display: "standalone",
     background_color: "#0D1117",
