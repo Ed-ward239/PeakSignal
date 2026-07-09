@@ -5,6 +5,7 @@
   "description": "Peak Signal — full-stack travel intelligence web app (Next.js PWA)",
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next build && (sleep 2 && open http://localhost:3000 &) && next start",
     "serve": "next start"

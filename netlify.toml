@@ -1,0 +1,4 @@
+# Netlify deploy config. Next.js 16 is handled by Netlify's Next runtime
+# automatically; we only ensure the Prisma client is generated before build.
+[build]
+  command = "npx prisma generate && npm run build"
