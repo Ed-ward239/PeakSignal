@@ -2,3 +2,10 @@
 # automatically; we only ensure the Prisma client is generated before build.
 [build]
   command = "npx prisma generate && npm run build"
+
+[build.environment]
+  # Secrets-scanner exclusions — these three are NOT secrets: the RapidAPI
+  # hosts are public hostnames (documented in .env.example), and NEON_BRANCH's
+  # value is the word "production", which matches every NODE_ENV check.
+  # Real secrets (API keys, DATABASE_URL, tokens) remain scanned.
+  SECRETS_SCAN_OMIT_KEYS = "RAPIDAPI_BOOKING_HOST,RAPIDAPI_AIRBNB_HOST,NEON_BRANCH"
